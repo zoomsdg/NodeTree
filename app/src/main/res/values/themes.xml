@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 直接继承平台主题，不引 AppCompat，保持依赖最小 -->
+    <style name="Theme.NodeChain" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>
