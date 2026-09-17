@@ -1,6 +1,7 @@
 package com.example.nodechain.ui.history
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -33,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -181,52 +184,75 @@ private fun RunCard(run: TestRun) {
                         )
                     } else {
                         run.steps.forEachIndexed { index, step ->
-                            Column(Modifier.padding(bottom = 14.dp)) {
+                            Column(Modifier.padding(bottom = 10.dp)) {
                                 Text(
                                     text = "${index + 1}. ${step.question}",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
-                                Text(
-                                    text = step.answer,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Medium,
+                                // 点答案这一行就直接加一条事后批注，省掉"箭头 -> 按钮"两步
+                                AnswerRow(
+                                    answer = step.answer,
+                                    onAddNote = {
+                                        ChainStore.addRunNote(run.id, index, LATE_NOTE_PREFIX)
+                                    },
                                 )
-                                Spacer(Modifier.height(6.dp))
                                 ExplanationSection(
                                     blocks = step.notes,
                                     editable = true,
-                                    addLabel = "添加事后批注",
-                                    collapsibleAdd = true,
+                                    compact = true,
                                     onChange = { id, t, b ->
                                         ChainStore.updateRunNote(run.id, index, id, t, b)
                                     },
                                     onDelete = { ChainStore.deleteRunNote(run.id, index, it) },
-                                    onAdd = { ChainStore.addRunNote(run.id, index, LATE_NOTE_PREFIX) },
                                 )
                             }
                         }
                     }
 
                     HorizontalDivider()
-                    Spacer(Modifier.height(10.dp))
-                    Text(
-                        text = "结论：${run.resultTitle}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
+                    Spacer(Modifier.height(8.dp))
+                    AnswerRow(
+                        answer = "结论：${run.resultTitle}",
+                        onAddNote = { ChainStore.addRunNote(run.id, -1, LATE_NOTE_PREFIX) },
                     )
-                    Spacer(Modifier.height(6.dp))
                     ExplanationSection(
                         blocks = run.resultNotes,
                         editable = true,
-                        addLabel = "添加事后批注",
-                        collapsibleAdd = true,
+                        compact = true,
                         onChange = { id, t, b -> ChainStore.updateRunNote(run.id, -1, id, t, b) },
                         onDelete = { ChainStore.deleteRunNote(run.id, -1, it) },
-                        onAdd = { ChainStore.addRunNote(run.id, -1, LATE_NOTE_PREFIX) },
                     )
                 }
             }
         }
+    }
+}
+
+/**
+ * 作答（或结论）那一行。整行可点，点了就加一条事后批注。
+ * 右侧给一个轻量提示，否则"可以点"这件事没人能猜到。
+ */
+@Composable
+private fun AnswerRow(answer: String, onAddNote: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(6.dp))
+            .clickable(onClick = onAddNote)
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = answer,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = "＋批注",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+        )
     }
 }

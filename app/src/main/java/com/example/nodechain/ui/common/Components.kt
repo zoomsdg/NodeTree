@@ -1,9 +1,9 @@
 package com.example.nodechain.ui.common
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,12 +14,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -33,7 +29,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -130,6 +125,7 @@ fun ConfirmDialog(
     )
 }
 
+private const val COLLAPSED_LINES = 3
 
 /**
  * 解释性文字 / 批注的展示与编辑。
@@ -137,10 +133,11 @@ fun ConfirmDialog(
  * 展示态默认只显示前 3 行，超出才给"展开"。一道题下面挂好几段说明时，
  * 不截断的话答案按钮会被挤到屏幕外面去。
  *
- * 新建的块不写标题，直接写正文。[ExplanationBlock.title] 只为读得懂旧数据而保留：
- * 已经有标题的照常显示、可编辑，但新建的不会再产生标题。
+ * 新建的块不写标题。[ExplanationBlock.title] 只为读得懂旧数据而保留——
+ * 早期版本把正文写在 title 里，所以渲染时两个字段都要管，否则老批注会显示成空白。
  *
- * [collapsibleAdd] 为 true 时，"添加"入口先收成一个下箭头，点开才露出来。
+ * [compact] 是测试记录里用的紧凑版：正文和"编辑"排在同一行，底色也换一种，
+ * 好跟周围的作答路径区分开。紧凑版没有"添加"按钮，添加入口在调用方（点答案那一行）。
  */
 @Composable
 fun ExplanationSection(
@@ -149,7 +146,7 @@ fun ExplanationSection(
     modifier: Modifier = Modifier,
     addLabel: String = "添加解释",
     emptyHint: String? = null,
-    collapsibleAdd: Boolean = false,
+    compact: Boolean = false,
     onChange: (id: String, title: String, body: String) -> Unit = { _, _, _ -> },
     onDelete: (id: String) -> Unit = {},
     onAdd: (() -> Unit)? = null,
@@ -171,11 +168,11 @@ fun ExplanationSection(
         }
     }
 
-    var addOpen by remember { mutableStateOf(!collapsibleAdd) }
-    val addArrow by animateFloatAsState(if (addOpen) 180f else 0f, label = "addArrow")
-
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (blocks.isEmpty() && emptyHint != null && addOpen) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 8.dp),
+    ) {
+        if (blocks.isEmpty() && emptyHint != null) {
             Text(
                 text = emptyHint,
                 style = MaterialTheme.typography.bodySmall,
@@ -188,6 +185,7 @@ fun ExplanationSection(
                 block = block,
                 editable = editable,
                 editing = block.id in editingIds,
+                compact = compact,
                 onStartEdit = { editingIds.add(block.id) },
                 onDoneEdit = { editingIds.remove(block.id) },
                 onChange = { t, b -> onChange(block.id, t, b) },
@@ -199,34 +197,21 @@ fun ExplanationSection(
         }
 
         if (onAdd != null) {
-            if (collapsibleAdd) {
-                IconButton(onClick = { addOpen = !addOpen }, modifier = Modifier.size(32.dp)) {
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = if (addOpen) "收起批注操作" else "展开批注操作",
-                        modifier = Modifier.rotate(addArrow).size(22.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            }
-            AnimatedVisibility(visible = addOpen) {
-                TextButton(onClick = onAdd) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(addLabel)
-                }
+            TextButton(onClick = onAdd) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(addLabel)
             }
         }
     }
 }
-
-private const val COLLAPSED_LINES = 3
 
 @Composable
 private fun ExplanationCard(
     block: ExplanationBlock,
     editable: Boolean,
     editing: Boolean,
+    compact: Boolean,
     onStartEdit: () -> Unit,
     onDoneEdit: () -> Unit,
     onChange: (String, String) -> Unit,
@@ -235,13 +220,19 @@ private fun ExplanationCard(
     var expanded by remember(block.id) { mutableStateOf(false) }
     var overflowing by remember(block.id) { mutableStateOf(false) }
 
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        ),
+    val container = if (compact) {
+        MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f)
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    }
+
+    Surface(
+        color = container,
+        shape = RoundedCornerShape(8.dp),
+        modifier = Modifier.fillMaxWidth(),
     ) {
-        Column(Modifier.fillMaxWidth().padding(14.dp)) {
-            if (editing) {
+        when {
+            editing -> Column(Modifier.padding(if (compact) 10.dp else 14.dp)) {
                 // 只有旧数据才可能带标题，新建的不给标题框
                 if (block.title.isNotBlank()) {
                     AutoSaveTextField(
@@ -259,7 +250,7 @@ private fun ExplanationCard(
                     identity = block.id + ":body",
                     onChange = { onChange(block.title, it) },
                     label = "内容",
-                    minLines = 3,
+                    minLines = if (compact) 2 else 3,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Row(
@@ -272,24 +263,35 @@ private fun ExplanationCard(
                     }
                     TextButton(onClick = onDoneEdit) { Text("完成") }
                 }
-            } else {
-                if (block.title.isNotBlank()) {
-                    Text(
-                        text = block.title,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Medium,
-                    )
-                    Spacer(Modifier.height(4.dp))
+            }
+
+            // 紧凑版：正文与"编辑"同一行；文字超过 3 行时点正文展开
+            compact -> Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 10.dp, end = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(
+                    Modifier
+                        .weight(1f)
+                        .clickable(enabled = overflowing || expanded) { expanded = !expanded }
+                        .padding(vertical = 8.dp)
+                ) {
+                    NoteText(block, expanded) { if (!expanded) overflowing = it }
                 }
-                Text(
-                    text = block.body.ifBlank { "（还没有内容）" },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (block.body.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant
-                    else MaterialTheme.colorScheme.onSurface,
-                    maxLines = if (expanded) Int.MAX_VALUE else COLLAPSED_LINES,
-                    overflow = TextOverflow.Ellipsis,
-                    onTextLayout = { if (!expanded) overflowing = it.hasVisualOverflow },
-                )
+                if (editable) {
+                    TextButton(
+                        onClick = onStartEdit,
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                    ) {
+                        Text("编辑", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+            }
+
+            else -> Column(Modifier.fillMaxWidth().padding(14.dp)) {
+                NoteText(block, expanded) { if (!expanded) overflowing = it }
                 if (overflowing || expanded || editable) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (overflowing || expanded) {
@@ -305,5 +307,36 @@ private fun ExplanationCard(
                 }
             }
         }
+    }
+}
+
+/**
+ * 正文渲染。早期版本把内容写在 [ExplanationBlock.title] 里，
+ * 所以两个字段都要显示，不然老数据看着像空的。
+ */
+@Composable
+private fun NoteText(
+    block: ExplanationBlock,
+    expanded: Boolean,
+    onOverflow: (Boolean) -> Unit,
+) {
+    if (block.title.isNotBlank()) {
+        Text(
+            text = block.title,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Medium,
+        )
+        if (block.body.isNotBlank()) Spacer(Modifier.height(2.dp))
+    }
+    if (block.body.isNotBlank() || block.title.isBlank()) {
+        Text(
+            text = block.body.ifBlank { "（还没有内容）" },
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (block.body.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant
+            else MaterialTheme.colorScheme.onSurface,
+            maxLines = if (expanded) Int.MAX_VALUE else COLLAPSED_LINES,
+            overflow = TextOverflow.Ellipsis,
+            onTextLayout = { onOverflow(it.hasVisualOverflow) },
+        )
     }
 }
