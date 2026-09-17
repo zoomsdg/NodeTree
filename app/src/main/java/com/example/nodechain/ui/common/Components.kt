@@ -175,7 +175,6 @@ fun ExplanationSection(
     editable: Boolean,
     modifier: Modifier = Modifier,
     addLabel: String = "添加解释",
-    emptyHint: String? = null,
     compact: Boolean = false,
     onChange: (id: String, title: String, body: String) -> Unit = { _, _, _ -> },
     onDelete: (id: String) -> Unit = {},
@@ -202,14 +201,6 @@ fun ExplanationSection(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 8.dp),
     ) {
-        if (blocks.isEmpty() && emptyHint != null) {
-            Text(
-                text = emptyHint,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-
         blocks.forEach { block ->
             ExplanationCard(
                 block = block,

@@ -314,7 +314,6 @@ private fun RunNoteSection(
             blocks = notes,
             editable = true,
             addLabel = "添加批注",
-            emptyHint = "还没有批注。可以记下这次测试的特殊情况，比如口头补充、存疑的地方。",
             onChange = onChange,
             onDelete = onDelete,
             onAdd = onAdd,
