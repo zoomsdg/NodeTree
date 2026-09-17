@@ -1,5 +1,6 @@
 package com.example.nodechain.ui.common
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,9 +12,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -29,6 +32,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -125,12 +130,37 @@ fun ConfirmDialog(
     )
 }
 
+/**
+ * 展开 / 收起用的箭头。刻意做成图标而不是文字按钮：
+ * 它总是跟在被折叠内容的同一行末尾，不额外占一行高度。
+ */
+@Composable
+fun ExpandArrow(
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+    tint: Color = MaterialTheme.colorScheme.primary,
+) {
+    val rotation by animateFloatAsState(if (expanded) 180f else 0f, label = "expandArrow")
+    Icon(
+        imageVector = Icons.Default.KeyboardArrowDown,
+        contentDescription = if (expanded) "收起" else "展开",
+        tint = tint,
+        modifier = modifier
+            .size(28.dp)
+            .clip(CircleShape)
+            .clickable(onClick = onToggle)
+            .padding(3.dp)
+            .rotate(rotation),
+    )
+}
+
 private const val COLLAPSED_LINES = 3
 
 /**
  * 解释性文字 / 批注的展示与编辑。
  *
- * 展示态默认只显示前 3 行，超出才给"展开"。一道题下面挂好几段说明时，
+ * 展示态默认只显示前 3 行，超出才在行尾给一个展开箭头。一道题下面挂好几段说明时，
  * 不截断的话答案按钮会被挤到屏幕外面去。
  *
  * 新建的块不写标题。[ExplanationBlock.title] 只为读得懂旧数据而保留——
@@ -265,20 +295,23 @@ private fun ExplanationCard(
                 }
             }
 
-            // 紧凑版：正文与"编辑"同一行；文字超过 3 行时点正文展开
-            compact -> Row(
+            // 展示态：正文、展开箭头、"编辑"全排在一行，不额外占高度
+            else -> Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 10.dp, end = 2.dp),
+                    .padding(start = if (compact) 10.dp else 14.dp, end = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(
                     Modifier
                         .weight(1f)
                         .clickable(enabled = overflowing || expanded) { expanded = !expanded }
-                        .padding(vertical = 8.dp)
+                        .padding(vertical = if (compact) 8.dp else 12.dp)
                 ) {
                     NoteText(block, expanded) { if (!expanded) overflowing = it }
+                }
+                if (overflowing || expanded) {
+                    ExpandArrow(expanded = expanded, onToggle = { expanded = !expanded })
                 }
                 if (editable) {
                     TextButton(
@@ -286,23 +319,6 @@ private fun ExplanationCard(
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                     ) {
                         Text("编辑", style = MaterialTheme.typography.labelMedium)
-                    }
-                }
-            }
-
-            else -> Column(Modifier.fillMaxWidth().padding(14.dp)) {
-                NoteText(block, expanded) { if (!expanded) overflowing = it }
-                if (overflowing || expanded || editable) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (overflowing || expanded) {
-                            TextButton(onClick = { expanded = !expanded }) {
-                                Text(if (expanded) "收起" else "展开")
-                            }
-                        }
-                        Spacer(Modifier.weight(1f))
-                        if (editable) {
-                            TextButton(onClick = onStartEdit) { Text("编辑") }
-                        }
                     }
                 }
             }

@@ -44,6 +44,7 @@ import com.example.nodechain.data.LATE_NOTE_PREFIX
 import com.example.nodechain.data.TestRun
 import com.example.nodechain.ui.common.ConfirmDialog
 import com.example.nodechain.ui.common.EmptyState
+import com.example.nodechain.ui.common.ExpandArrow
 import com.example.nodechain.ui.common.ExplanationSection
 import com.example.nodechain.ui.common.OutcomeBadge
 import com.example.nodechain.ui.formatTime
@@ -158,11 +159,7 @@ private fun RunCard(run: TestRun) {
                     )
                 }
                 Spacer(Modifier.weight(1f))
-                Text(
-                    text = if (expanded) "收起" else "查看路径",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+                ExpandArrow(expanded = expanded, onToggle = { expanded = !expanded })
             }
 
             AnimatedVisibility(visible = expanded) {

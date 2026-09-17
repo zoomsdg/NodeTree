@@ -64,6 +64,7 @@ import com.example.nodechain.data.issues
 import com.example.nodechain.data.nodeById
 import com.example.nodechain.ui.common.AutoSaveTextField
 import com.example.nodechain.ui.common.ConfirmDialog
+import com.example.nodechain.ui.common.ExpandArrow
 import com.example.nodechain.ui.common.EmptyState
 import com.example.nodechain.ui.common.OutcomeBadge
 import com.example.nodechain.ui.common.TypeChip
@@ -282,7 +283,16 @@ private fun IssueCard(issues: List<ChainIssue>, onNodeClick: (String) -> Unit) {
                     text = "还有 ${issues.size} 处没配置完",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f),
                 )
+                // 超过 5 条才需要折叠，箭头跟在标题后面，不另起一行
+                if (issues.size > 5) {
+                    ExpandArrow(
+                        expanded = expanded,
+                        onToggle = { expanded = !expanded },
+                        tint = MaterialTheme.colorScheme.error,
+                    )
+                }
             }
             Spacer(Modifier.height(4.dp))
 
@@ -314,15 +324,6 @@ private fun IssueCard(issues: List<ChainIssue>, onNodeClick: (String) -> Unit) {
                             fontWeight = FontWeight.Medium,
                         )
                     }
-                }
-            }
-
-            if (issues.size > 5) {
-                TextButton(
-                    onClick = { expanded = !expanded },
-                    modifier = Modifier.padding(start = 6.dp),
-                ) {
-                    Text(if (expanded) "收起" else "展开其余 ${issues.size - 5} 条")
                 }
             }
         }
