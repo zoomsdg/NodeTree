@@ -347,6 +347,55 @@ private fun OptionCard(
                         )
                     }
                     DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                        // 问题节点和结果节点分组列出：混在一起时两者长得一模一样，
+                        // 光看文字分不出点过去是继续提问还是直接出结论
+                        val candidates = chain.nodes.filter { it.id != nodeId }
+                        val questions = candidates.filterIsInstance<QuestionNode>()
+                        val results = candidates.filterIsInstance<ResultNode>()
+
+                        // 第一组不画分隔线，否则菜单会以一条横线开头
+                        if (questions.isNotEmpty()) {
+                            MenuSectionLabel("接到已有问题节点")
+                            questions.forEach { candidate ->
+                                DropdownMenuItem(
+                                    text = { Text(candidate.displayLabel(), maxLines = 1) },
+                                    onClick = {
+                                        menu = false
+                                        ChainStore.setOptionTarget(chain.id, nodeId, option.id, candidate.id)
+                                    },
+                                )
+                            }
+                        }
+
+                        if (results.isNotEmpty()) {
+                            if (questions.isNotEmpty()) HorizontalDivider()
+                            MenuSectionLabel("接到已有结果节点")
+                            results.forEach { candidate ->
+                                DropdownMenuItem(
+                                    text = { Text(candidate.displayLabel(), maxLines = 1) },
+                                    trailingIcon = { OutcomeBadge(candidate.outcome) },
+                                    onClick = {
+                                        menu = false
+                                        ChainStore.setOptionTarget(chain.id, nodeId, option.id, candidate.id)
+                                    },
+                                )
+                            }
+                        }
+                        if (option.nextNodeId != null) {
+                            if (candidates.isNotEmpty()) HorizontalDivider()
+                            DropdownMenuItem(
+                                text = { Text("断开连接") },
+                                onClick = {
+                                    menu = false
+                                    ChainStore.setOptionTarget(chain.id, nodeId, option.id, null)
+                                },
+                            )
+                        }
+
+                        // 新建放在最后：链搭到一半时，多数情况是接到已经建好的节点上，
+                        // 让已有节点先露出来，不被这四项顶下去
+                        if (candidates.isNotEmpty() || option.nextNodeId != null) HorizontalDivider()
+                        MenuSectionLabel("新建并连接")
                         DropdownMenuItem(
                             text = { Text("新建问题节点并连接") },
                             leadingIcon = { Icon(Icons.Default.Add, null) },
@@ -362,50 +411,6 @@ private fun OptionCard(
                                 onClick = {
                                     menu = false
                                     ChainStore.createAndLink(chain.id, nodeId, option.id, outcome)
-                                },
-                            )
-                        }
-                        // 问题节点和结果节点分组列出：混在一起时两者长得一模一样，
-                        // 光看文字分不出点过去是继续提问还是直接出结论
-                        val candidates = chain.nodes.filter { it.id != nodeId }
-                        val questions = candidates.filterIsInstance<QuestionNode>()
-                        val results = candidates.filterIsInstance<ResultNode>()
-
-                        if (questions.isNotEmpty()) {
-                            HorizontalDivider()
-                            MenuSectionLabel("接到已有问题节点")
-                            questions.forEach { candidate ->
-                                DropdownMenuItem(
-                                    text = { Text(candidate.displayLabel(), maxLines = 1) },
-                                    onClick = {
-                                        menu = false
-                                        ChainStore.setOptionTarget(chain.id, nodeId, option.id, candidate.id)
-                                    },
-                                )
-                            }
-                        }
-
-                        if (results.isNotEmpty()) {
-                            HorizontalDivider()
-                            MenuSectionLabel("接到已有结果节点")
-                            results.forEach { candidate ->
-                                DropdownMenuItem(
-                                    text = { Text(candidate.displayLabel(), maxLines = 1) },
-                                    trailingIcon = { OutcomeBadge(candidate.outcome) },
-                                    onClick = {
-                                        menu = false
-                                        ChainStore.setOptionTarget(chain.id, nodeId, option.id, candidate.id)
-                                    },
-                                )
-                            }
-                        }
-                        if (option.nextNodeId != null) {
-                            HorizontalDivider()
-                            DropdownMenuItem(
-                                text = { Text("断开连接") },
-                                onClick = {
-                                    menu = false
-                                    ChainStore.setOptionTarget(chain.id, nodeId, option.id, null)
                                 },
                             )
                         }
