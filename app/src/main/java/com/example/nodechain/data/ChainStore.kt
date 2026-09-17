@@ -45,23 +45,53 @@ object ChainStore {
     private var saveChainsJob: Job? = null
     private var saveHistoryJob: Job? = null
 
+    /**
+     * 同步读盘，**不要改成异步**。
+     *
+     * 曾经是 `scope.launch { ... }` 异步加载，结果有一个会丢数据的竞态：
+     * 加载完成前 `_chains.value` 还是空列表，这时用户点"构建节点链"，
+     * 新链就变成了"空列表 + 新链"，防抖落盘再把这个残缺列表写回文件，
+     * 已有的链全没了。表现就是"开 App 立刻新建，旧数据消失"。
+     *
+     * 数据量是有上限的（历史最多 [MAX_HISTORY] 条，合计几十 KB），
+     * 在 Application.onCreate 里同步读一次可以接受，换来的是彻底没有这个竞态。
+     */
     fun init(context: Context) {
         if (::chainsFile.isInitialized) return
         val dir = context.filesDir
         chainsFile = File(dir, "chains.json")
         historyFile = File(dir, "history.json")
-        scope.launch {
-            _chains.value = readList(chainsFile)
-            _history.value = readList(historyFile)
-            _loaded.value = true
+        _chains.value = readList(chainsFile)
+        _history.value = readList(historyFile)
+        _loaded.value = true
+    }
+
+    /**
+     * 读一个列表文件。
+     *
+     * 解析失败时**必须把原文件挪走**，不能只返回空列表：返回空之后内存里就是空的，
+     * 用户随便改一下就会把这个空列表写回去，原来的数据被彻底覆盖——
+     * 一个 BOM、一次写到一半的文件，就足以让所有节点链无声消失。
+     * 挪成 .corrupt-<时间戳> 至少还能手工捞回来。
+     *
+     * 另外容忍开头的 BOM：有些工具导出的 JSON 会带，而 BOM 不是合法的 JSON 空白符。
+     */
+    private inline fun <reified T> readList(file: File): List<T> {
+        if (!file.exists()) return emptyList()
+        val text = runCatching { file.readText() }.getOrNull() ?: return emptyList()
+        if (text.isBlank()) return emptyList()
+        return runCatching {
+            json.decodeFromString<List<T>>(text.trimStart('\uFEFF'))
+        }.getOrElse {
+            runCatching {
+                file.renameTo(File(file.parentFile, file.name + ".corrupt-" + System.currentTimeMillis()))
+            }
+            emptyList()
         }
     }
 
-    private inline fun <reified T> readList(file: File): List<T> = runCatching {
-        if (!file.exists()) emptyList() else json.decodeFromString<List<T>>(file.readText())
-    }.getOrDefault(emptyList())
-
     private fun persistChains() {
+        if (!_loaded.value) return   // 兜底：加载完成前绝不写盘
         saveChainsJob?.cancel()
         val snapshot = _chains.value
         saveChainsJob = scope.launch {
@@ -71,6 +101,7 @@ object ChainStore {
     }
 
     private fun persistHistory() {
+        if (!_loaded.value) return   // 兜底：加载完成前绝不写盘
         saveHistoryJob?.cancel()
         val snapshot = _history.value
         saveHistoryJob = scope.launch {
@@ -95,6 +126,23 @@ object ChainStore {
         _chains.value = _chains.value + chain
         persistChains()
         return chain.id
+    }
+
+    /**
+     * 在首页列表里挪动一条链的位置。[delta] 为 -1 上移、+1 下移。
+     *
+     * 首页就是按这个列表的顺序显示的，所以调整顺序 = 调整显示位置。
+     * 这不算内容修改，故意不动 updatedAt。
+     */
+    fun moveChain(id: String, delta: Int) {
+        val list = _chains.value.toMutableList()
+        val from = list.indexOfFirst { it.id == id }
+        if (from < 0) return
+        val to = from + delta
+        if (to !in list.indices) return
+        list.add(to, list.removeAt(from))
+        _chains.value = list
+        persistChains()
     }
 
     fun deleteChain(id: String) {

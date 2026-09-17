@@ -14,10 +14,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
@@ -54,12 +56,8 @@ import com.example.nodechain.data.ChainStore
 import com.example.nodechain.data.NodeChain
 import com.example.nodechain.data.isRunnable
 import com.example.nodechain.data.issues
-import com.example.nodechain.data.questionCount
-import com.example.nodechain.data.resultCount
 import com.example.nodechain.ui.common.ConfirmDialog
 import com.example.nodechain.ui.common.EmptyState
-import com.example.nodechain.ui.common.TypeChip
-import com.example.nodechain.ui.formatTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -143,11 +141,14 @@ fun HomeScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                items(chains, key = { it.id }) { chain ->
+                itemsIndexed(chains, key = { _, chain -> chain.id }) { index, chain ->
                     ChainCard(
                         chain = chain,
+                        canMoveUp = index > 0,
+                        canMoveDown = index < chains.lastIndex,
                         onRun = { onRun(chain.id) },
                         onEdit = { onEdit(chain.id) },
+                        modifier = Modifier.animateItem(),
                     )
                 }
             }
@@ -166,7 +167,14 @@ fun HomeScreen(
 }
 
 @Composable
-private fun ChainCard(chain: NodeChain, onRun: () -> Unit, onEdit: () -> Unit) {
+private fun ChainCard(
+    chain: NodeChain,
+    canMoveUp: Boolean,
+    canMoveDown: Boolean,
+    onRun: () -> Unit,
+    onEdit: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     var menu by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     val problems = remember(chain) { chain.issues() }
@@ -175,6 +183,7 @@ private fun ChainCard(chain: NodeChain, onRun: () -> Unit, onEdit: () -> Unit) {
     Card(
         onClick = if (runnable) onRun else onEdit,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        modifier = modifier,
     ) {
         Column(Modifier.padding(start = 16.dp, end = 4.dp, top = 14.dp, bottom = 14.dp)) {
             Row(verticalAlignment = Alignment.Top) {
@@ -198,6 +207,20 @@ private fun ChainCard(chain: NodeChain, onRun: () -> Unit, onEdit: () -> Unit) {
                         Icon(Icons.Default.MoreVert, contentDescription = "更多操作")
                     }
                     DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                        // 首页按列表顺序显示，所以上移下移就是改显示位置
+                        DropdownMenuItem(
+                            text = { Text("上移") },
+                            leadingIcon = { Icon(Icons.Default.KeyboardArrowUp, null) },
+                            enabled = canMoveUp,
+                            onClick = { menu = false; ChainStore.moveChain(chain.id, -1) },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("下移") },
+                            leadingIcon = { Icon(Icons.Default.KeyboardArrowDown, null) },
+                            enabled = canMoveDown,
+                            onClick = { menu = false; ChainStore.moveChain(chain.id, 1) },
+                        )
+                        HorizontalDivider()
                         DropdownMenuItem(
                             text = { Text("编辑") },
                             onClick = { menu = false; onEdit() },
@@ -213,22 +236,6 @@ private fun ChainCard(chain: NodeChain, onRun: () -> Unit, onEdit: () -> Unit) {
                         )
                     }
                 }
-            }
-
-            Spacer(Modifier.height(10.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.padding(end = 12.dp),
-            ) {
-                TypeChip("${chain.questionCount} 个问题")
-                TypeChip("${chain.resultCount} 个结果")
-                Spacer(Modifier.weight(1f))
-                Text(
-                    text = formatTime(chain.updatedAt),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
 
             if (problems.isNotEmpty()) {

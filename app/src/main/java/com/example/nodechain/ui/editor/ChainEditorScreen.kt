@@ -63,12 +63,15 @@ import com.example.nodechain.data.displayLabel
 import com.example.nodechain.data.isRunnable
 import com.example.nodechain.data.issues
 import com.example.nodechain.data.nodeById
+import com.example.nodechain.data.questionCount
+import com.example.nodechain.data.resultCount
 import com.example.nodechain.ui.common.AutoSaveTextField
 import com.example.nodechain.ui.common.ConfirmDialog
 import com.example.nodechain.ui.common.ExpandArrow
 import com.example.nodechain.ui.common.EmptyState
 import com.example.nodechain.ui.common.OutcomeBadge
 import com.example.nodechain.ui.common.TypeChip
+import com.example.nodechain.ui.formatTime
 import com.example.nodechain.ui.theme.outcomeColors
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -184,6 +187,7 @@ private fun NodeListTab(chain: NodeChain, onEditNode: (String) -> Unit) {
                         modifier = Modifier.fillMaxWidth(),
                     )
                     StartNodePicker(chain)
+                    ChainStats(chain)
                 }
             }
         }
@@ -216,6 +220,28 @@ private fun NodeListTab(chain: NodeChain, onEditNode: (String) -> Unit) {
                 )
             }
         }
+    }
+}
+
+/** 链的统计信息。首页只留名字和主操作，这类数字放在编辑页看就够了。 */
+@Composable
+private fun ChainStats(chain: NodeChain) {
+    val answers = chain.nodes.filterIsInstance<QuestionNode>().sumOf { it.options.size }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TypeChip("${chain.questionCount} 个问题")
+        TypeChip("$answers 个答案")
+        TypeChip("${chain.resultCount} 个结果")
+    }
+    if (chain.updatedAt > 0L) {
+        Text(
+            text = "更新于 " + formatTime(chain.updatedAt),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
