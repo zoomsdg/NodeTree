@@ -471,11 +471,15 @@ private fun ResultView(
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium,
                         )
+                        // 直接把这一题的批注列出来，不再只报个条数。
+                        // 这里是只读的：批注已经随本次测试落进记录了，
+                        // 要改去"测试历史"改，免得两份数据对不上。
                         if (stepNotes.isNotEmpty()) {
-                            Text(
-                                text = "✎ ${stepNotes.size} 条批注",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary,
+                            Spacer(Modifier.height(4.dp))
+                            ExplanationSection(
+                                blocks = stepNotes,
+                                editable = false,
+                                compact = true,
                             )
                         }
                     }
