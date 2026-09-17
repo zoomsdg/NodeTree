@@ -220,7 +220,17 @@ private fun ChainCard(
                         Icon(Icons.Default.MoreVert, contentDescription = "更多操作")
                     }
                     DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                        // 首页按列表顺序显示，所以上移下移就是改显示位置
+                        DropdownMenuItem(
+                            text = { Text("编辑") },
+                            onClick = { menu = false; onEdit() },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("复制一份") },
+                            onClick = { menu = false; ChainStore.duplicateChain(chain.id) },
+                        )
+                        HorizontalDivider()
+                        // 首页按列表顺序显示，所以上移下移就是改显示位置。
+                        // 不是常用操作，排在常用项之后、删除之前。
                         DropdownMenuItem(
                             text = { Text("上移") },
                             leadingIcon = { Icon(Icons.Default.KeyboardArrowUp, null) },
@@ -232,15 +242,6 @@ private fun ChainCard(
                             leadingIcon = { Icon(Icons.Default.KeyboardArrowDown, null) },
                             enabled = canMoveDown,
                             onClick = { menu = false; ChainStore.moveChain(chain.id, 1) },
-                        )
-                        HorizontalDivider()
-                        DropdownMenuItem(
-                            text = { Text("编辑") },
-                            onClick = { menu = false; onEdit() },
-                        )
-                        DropdownMenuItem(
-                            text = { Text("复制一份") },
-                            onClick = { menu = false; ChainStore.duplicateChain(chain.id) },
                         )
                         HorizontalDivider()
                         DropdownMenuItem(
