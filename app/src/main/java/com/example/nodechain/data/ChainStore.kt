@@ -339,9 +339,14 @@ object ChainStore {
         )
     }
 
-    fun addRunNote(runId: String, stepIndex: Int) = mutateRun(runId) { run ->
-        mapRunNotes(run, stepIndex) { it + ExplanationBlock(newId()) }
-    }
+    /**
+     * 加一条测试级批注。[initialBody] 用来预填开头，
+     * 历史记录里补写的会带上"事后批注："，跟测试当场写的区分开。
+     */
+    fun addRunNote(runId: String, stepIndex: Int, initialBody: String = "") =
+        mutateRun(runId) { run ->
+            mapRunNotes(run, stepIndex) { it + ExplanationBlock(newId(), body = initialBody) }
+        }
 
     fun updateRunNote(
         runId: String,

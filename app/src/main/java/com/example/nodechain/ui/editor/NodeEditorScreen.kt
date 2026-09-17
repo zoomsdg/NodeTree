@@ -169,7 +169,7 @@ fun NodeEditorScreen(
             }
 
             item { HorizontalDivider() }
-            item { SectionTitle("解释性文字", "测试时显示在答案下方，默认折叠，点开才看得到") }
+            item { SectionTitle("解释性文字", "测试时显示在答案下方，默认显示前 3 行，超出部分点「展开」看全文") }
             item {
                 ExplanationSection(
                     blocks = node.explanations,

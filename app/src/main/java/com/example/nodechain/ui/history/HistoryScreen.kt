@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.nodechain.data.ChainStore
+import com.example.nodechain.data.LATE_NOTE_PREFIX
 import com.example.nodechain.data.TestRun
 import com.example.nodechain.ui.common.ConfirmDialog
 import com.example.nodechain.ui.common.EmptyState
@@ -195,13 +196,13 @@ private fun RunCard(run: TestRun) {
                                 ExplanationSection(
                                     blocks = step.notes,
                                     editable = true,
-                                    addLabel = "添加批注",
-                                    defaultExpanded = false,
+                                    addLabel = "添加事后批注",
+                                    collapsibleAdd = true,
                                     onChange = { id, t, b ->
                                         ChainStore.updateRunNote(run.id, index, id, t, b)
                                     },
                                     onDelete = { ChainStore.deleteRunNote(run.id, index, it) },
-                                    onAdd = { ChainStore.addRunNote(run.id, index) },
+                                    onAdd = { ChainStore.addRunNote(run.id, index, LATE_NOTE_PREFIX) },
                                 )
                             }
                         }
@@ -218,11 +219,11 @@ private fun RunCard(run: TestRun) {
                     ExplanationSection(
                         blocks = run.resultNotes,
                         editable = true,
-                        addLabel = "添加批注",
-                        defaultExpanded = false,
+                        addLabel = "添加事后批注",
+                        collapsibleAdd = true,
                         onChange = { id, t, b -> ChainStore.updateRunNote(run.id, -1, id, t, b) },
                         onDelete = { ChainStore.deleteRunNote(run.id, -1, it) },
-                        onAdd = { ChainStore.addRunNote(run.id, -1) },
+                        onAdd = { ChainStore.addRunNote(run.id, -1, LATE_NOTE_PREFIX) },
                     )
                 }
             }

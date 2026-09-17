@@ -100,6 +100,9 @@ data class TestRun(
 
 const val EXPORT_FORMAT = "nodechain-export"
 
+/** 在历史记录里补写的批注，开头固定带上这个前缀，跟测试当场写的区分开。 */
+const val LATE_NOTE_PREFIX = "事后批注："
+
 /**
  * 导出文件的内容。节点链和测试记录可以混装，只勾一种就只有一种。
  *
