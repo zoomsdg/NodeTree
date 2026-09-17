@@ -9,14 +9,17 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -29,6 +32,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -63,7 +67,9 @@ import com.example.nodechain.ui.common.TypeChip
 fun NodeEditorScreen(
     chainId: String,
     nodeId: String,
+    depth: Int,
     onBack: () -> Unit,
+    onBackToChain: () -> Unit,
     onOpenNode: (String) -> Unit,
 ) {
     val chains by ChainStore.chains.collectAsStateWithLifecycle()
@@ -91,6 +97,46 @@ fun NodeEditorScreen(
                     }
                 },
             )
+        },
+        bottomBar = {
+            // 顺着"新建节点并连接"往下建好几层之后，靠返回键要一层层退，
+            // 所以这里直接给一个回到链编辑页的出口
+            Surface(tonalElevation = 3.dp) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    if (depth > 0) {
+                        OutlinedButton(
+                            onClick = onBack,
+                            modifier = Modifier.weight(1f).height(46.dp),
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text("上一节点")
+                        }
+                    }
+                    Button(
+                        onClick = onBackToChain,
+                        modifier = Modifier.weight(1f).height(46.dp),
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.List,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text("返回节点链")
+                    }
+                }
+            }
         },
     ) { inner ->
         LazyColumn(
@@ -147,7 +193,9 @@ fun NodeEditorScreen(
                     item {
                         AutoSaveTextField(
                             initial = node.title,
-                            identity = node.id + ":t",
+                            // identity 带上性质：切换性质时默认标题会被 store 改掉，
+                            // 不重新取值的话输入框还显示旧标题，再打一个字就把改动顶回去了
+                            identity = node.id + ":t:" + node.outcome.name,
                             onChange = { ChainStore.updateResult(chainId, nodeId, it, node.outcome) },
                             label = "结果标题",
                             placeholder = "例如：合格，可以入学",

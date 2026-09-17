@@ -235,9 +235,28 @@ object ChainStore {
         mutateNode(chainId, nodeId) { if (it is QuestionNode) it.copy(question = text) else it }
 
     fun updateResult(chainId: String, nodeId: String, title: String, outcome: Outcome) =
-        mutateNode(chainId, nodeId) {
-            if (it is ResultNode) it.copy(title = title, outcome = outcome) else it
+        mutate(chainId) { chain ->
+            chain.copy(nodes = chain.nodes.map { node ->
+                if (node !is ResultNode || node.id != nodeId) return@map node
+                // 标题还停留在上一个性质的默认名时，跟着一起换。
+                // 否则会出现徽章写着"未通过"、标题却是"通过 2"这种自相矛盾的卡片。
+                val renaming = outcome != node.outcome && isDefaultTitle(title, node.outcome)
+                val finalTitle = if (renaming) {
+                    uniqueTitle(chain, defaultResultTitle(outcome))
+                } else {
+                    title
+                }
+                node.copy(title = finalTitle, outcome = outcome)
+            })
         }
+
+    /** 判断标题是不是某个性质的默认名（含自动编号，如"未通过 2"）。 */
+    private fun isDefaultTitle(title: String, outcome: Outcome): Boolean {
+        val base = defaultResultTitle(outcome)
+        if (title == base) return true
+        val suffix = title.removePrefix("$base ")
+        return suffix != title && suffix.toIntOrNull() != null
+    }
 
     // ---------- 答案选项 ----------
 

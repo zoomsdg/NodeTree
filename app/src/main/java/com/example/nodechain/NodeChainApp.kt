@@ -30,11 +30,14 @@ private object Routes {
     const val ENV = "env"
     const val TRANSFER = "transfer"
     const val EDITOR = "editor/{chainId}"
-    const val NODE = "node/{chainId}/{nodeId}"
+    const val NODE = "node/{chainId}/{nodeId}/{depth}"
     const val RUN = "run/{chainId}"
 
     fun editor(chainId: String) = "editor/${Uri.encode(chainId)}"
-    fun node(chainId: String, nodeId: String) = "node/${Uri.encode(chainId)}/${Uri.encode(nodeId)}"
+    /** [depth] 是节点编辑页自身的嵌套层数：从链编辑页进来是 0，一层层往下建节点就累加。
+     *  用来决定"上一节点"要不要显示——第 0 层的上一步是链编辑页，不是节点。 */
+    fun node(chainId: String, nodeId: String, depth: Int) =
+        "node/${Uri.encode(chainId)}/${Uri.encode(nodeId)}/$depth"
     fun run(chainId: String) = "run/${Uri.encode(chainId)}"
 }
 
@@ -61,7 +64,7 @@ fun NodeChainApp() {
             ChainEditorScreen(
                 chainId = chainId,
                 onBack = { nav.popBackStack() },
-                onEditNode = { nav.navigate(Routes.node(chainId, it)) },
+                onEditNode = { nav.navigate(Routes.node(chainId, it, 0)) },
                 onRun = { nav.navigate(Routes.run(chainId)) },
             )
         }
@@ -71,15 +74,24 @@ fun NodeChainApp() {
             arguments = listOf(
                 navArgument("chainId") { type = NavType.StringType },
                 navArgument("nodeId") { type = NavType.StringType },
+                navArgument("depth") { type = NavType.IntType },
             ),
         ) { entry ->
             val chainId = entry.arguments?.getString("chainId").orEmpty()
             val nodeId = entry.arguments?.getString("nodeId").orEmpty()
+            val depth = entry.arguments?.getInt("depth") ?: 0
             NodeEditorScreen(
                 chainId = chainId,
                 nodeId = nodeId,
+                depth = depth,
                 onBack = { nav.popBackStack() },
-                onOpenNode = { nav.navigate(Routes.node(chainId, it)) },
+                // 一路往下建了好几层节点时，不用一层层退回去
+                onBackToChain = {
+                    if (!nav.popBackStack(Routes.editor(chainId), inclusive = false)) {
+                        nav.popBackStack()
+                    }
+                },
+                onOpenNode = { nav.navigate(Routes.node(chainId, it, depth + 1)) },
             )
         }
 

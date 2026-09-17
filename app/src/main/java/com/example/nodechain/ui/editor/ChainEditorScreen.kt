@@ -56,6 +56,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.nodechain.data.ChainIssue
 import com.example.nodechain.data.ChainStore
 import com.example.nodechain.data.NodeChain
+import com.example.nodechain.data.Outcome
 import com.example.nodechain.data.QuestionNode
 import com.example.nodechain.data.ResultNode
 import com.example.nodechain.data.displayLabel
@@ -68,6 +69,7 @@ import com.example.nodechain.ui.common.ExpandArrow
 import com.example.nodechain.ui.common.EmptyState
 import com.example.nodechain.ui.common.OutcomeBadge
 import com.example.nodechain.ui.common.TypeChip
+import com.example.nodechain.ui.theme.outcomeColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -337,7 +339,23 @@ private fun NodeCard(chain: NodeChain, nodeId: String, onClick: () -> Unit) {
     var confirmDelete by remember { mutableStateOf(false) }
     val isStart = chain.startNodeId == nodeId
 
-    Card(onClick = onClick) {
+    // 结果节点用它自己的性质配色，和链路预览图、结果徽章是同一套语言，
+    // 在一长串节点里一眼就能挑出终点在哪
+    val palette = outcomeColors()
+    val container = when (node) {
+        is ResultNode -> when (node.outcome) {
+            Outcome.PASS -> palette.passContainer
+            Outcome.FAIL -> palette.failContainer
+            Outcome.NEUTRAL -> palette.neutralContainer
+        }.copy(alpha = 0.45f)
+
+        else -> MaterialTheme.colorScheme.surfaceContainerLow
+    }
+
+    Card(
+        onClick = onClick,
+        colors = CardDefaults.cardColors(containerColor = container),
+    ) {
         Column(Modifier.padding(start = 14.dp, end = 4.dp, top = 12.dp, bottom = 12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 when (node) {

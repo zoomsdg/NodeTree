@@ -179,6 +179,18 @@ class ChainLogicTest {
     }
 
     @Test
+    fun `默认标题能识别出带编号的形式`() {
+        // 用 uniqueTitle 反推：默认名撞车时会变成"未通过 2"，这种也算默认名
+        val chain = NodeChain(
+            id = "c",
+            nodes = listOf(ResultNode(id = "r1", title = "未通过", outcome = Outcome.FAIL)),
+        )
+        assertEquals("未通过 2", ChainStore.uniqueTitle(chain, "未通过"))
+        // 用户自己起的名字不该被当成默认名
+        assertEquals("合格，可入学", ChainStore.uniqueName("合格，可入学", setOf("未通过", "未通过 2")))
+    }
+
+    @Test
     fun `链名去重按顺序往后编号`() {
         val taken = setOf("入学评估", "入学评估 2")
         assertEquals("入学评估 3", ChainStore.uniqueName("入学评估", taken))
