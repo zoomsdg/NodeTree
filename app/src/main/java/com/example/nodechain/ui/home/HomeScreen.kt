@@ -58,6 +58,7 @@ import com.example.nodechain.data.isRunnable
 import com.example.nodechain.data.issues
 import com.example.nodechain.ui.common.ConfirmDialog
 import com.example.nodechain.ui.common.EmptyState
+import com.example.nodechain.ui.formatDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -188,11 +189,23 @@ private fun ChainCard(
         Column(Modifier.padding(start = 16.dp, end = 4.dp, top = 14.dp, bottom = 14.dp)) {
             Row(verticalAlignment = Alignment.Top) {
                 Column(Modifier.weight(1f)) {
-                    Text(
-                        text = chain.title.ifBlank { "未命名节点链" },
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = chain.title.ifBlank { "未命名节点链" },
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                        // 最近编辑日期跟在标题同一行，不额外占一行
+                        if (chain.updatedAt > 0L) {
+                            Spacer(Modifier.width(10.dp))
+                            Text(
+                                text = formatDate(chain.updatedAt),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                     if (chain.description.isNotBlank()) {
                         Spacer(Modifier.height(4.dp))
                         Text(

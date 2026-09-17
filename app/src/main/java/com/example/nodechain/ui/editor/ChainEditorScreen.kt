@@ -71,6 +71,7 @@ import com.example.nodechain.ui.common.ExpandArrow
 import com.example.nodechain.ui.common.EmptyState
 import com.example.nodechain.ui.common.OutcomeBadge
 import com.example.nodechain.ui.common.TypeChip
+import com.example.nodechain.ui.formatFullDate
 import com.example.nodechain.ui.formatTime
 import com.example.nodechain.ui.theme.outcomeColors
 
@@ -236,9 +237,16 @@ private fun ChainStats(chain: NodeChain) {
         TypeChip("$answers 个答案")
         TypeChip("${chain.resultCount} 个结果")
     }
-    if (chain.updatedAt > 0L) {
+    val meta = buildString {
+        if (chain.updatedAt > 0L) append("更新于 ").append(formatTime(chain.updatedAt))
+        if (chain.createdAt > 0L) {
+            if (isNotEmpty()) append("    ")
+            append("创建于：").append(formatFullDate(chain.createdAt))
+        }
+    }
+    if (meta.isNotEmpty()) {
         Text(
-            text = "更新于 " + formatTime(chain.updatedAt),
+            text = meta,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
